@@ -15,7 +15,10 @@ func main() {
 	flag.Parse()
 
 	if keypath != nil {
-		c.LoadTrustedKeys(*keypath)
+		err := c.LoadTrustedKeys(*keypath)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	http.HandleFunc("/domain/", CheckDomain)

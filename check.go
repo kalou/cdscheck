@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"log"
 	"math/rand"
 	"net"
@@ -60,7 +61,7 @@ func GetRRs(set []dns.RR, name string, rtype uint16) (res []dns.RR) {
 	log.Println("GetRRs", name, set)
 	for _, rr := range set {
 		if rr.Header().Name == name &&
-			(rr.Header().Rrtype == rtype || rtype == dns.TypeANY) {
+			(rr.Header().Rrtype == rtype || rtype == dns.TypeANY || rr.Header().Rrtype == dns.TypeRRSIG) {
 			res = append(res, rr)
 		}
 	}
@@ -89,7 +90,13 @@ func RrsetName(rrset []dns.RR) (name string, err error) {
 	name = rrset[0].Header().Name
 	for _, rr := range rrset {
 		if rr.Header().Name != name {
-			return "", errors.New("Multiple names in RRSet")
+			switch rr.Header().Rrtype {
+			case dns.TypeNSEC, dns.TypeNSEC3, dns.TypeRRSIG:
+				continue
+			default:
+				fmt.Println(rr)
+				return "", errors.New("Multiple names in RRSet")
+			}
 		}
 	}
 	return
@@ -134,6 +141,7 @@ func NewChecker() *Checker {
 	}
 
 	defns, _ := dns.NewRR(". IN NS a.root-servers.net")
+
 	c.root = &Referral{origin: ".", authority: []dns.RR{defns}}
 
 	log.Println("auth", c.root.authority[0])
@@ -252,10 +260,17 @@ func Walk(domain string) (zones []string) {
 func (c *Checker) QueryAtOrigin(name string, rtype uint16) (set []dns.RR, err error) {
 	// Find lowest known origin
 	var ref *Referral
-	for _, origin := range Walk(name) {
-		ref = c.GetReferral(origin)
-		if ref != nil {
-			break
+
+	// Special case for DS lookup: follow referral
+	// from top. XXX: maybe start from parent zone only.
+	if rtype == dns.TypeDS {
+		ref = c.GetReferral(".")
+	} else {
+		for _, origin := range Walk(name) {
+			ref = c.GetReferral(origin)
+			if ref != nil {
+				break
+			}
 		}
 	}
 
@@ -388,7 +403,7 @@ func (c *Checker) Validate(rrset []dns.RR, sigset []*dns.RRSIG) (trusted string)
 	for _, sig := range sigset {
 		log.Println(rrset, "against", sig)
 
-		set, err := c.Lookup(sig.SignerName, dns.TypeANY)
+		set, err := c.Lookup(sig.SignerName, dns.TypeDNSKEY)
 		if err != nil {
 			log.Println("lookup", err)
 			continue
@@ -401,7 +416,7 @@ func (c *Checker) Validate(rrset []dns.RR, sigset []*dns.RRSIG) (trusted string)
 		}
 
 		if err := ValidateOne(rrset, sig, key); err != nil {
-			log.Println("validate", err)
+			log.Println("validate error", err)
 			continue
 		}
 
@@ -415,13 +430,13 @@ func (c *Checker) Validate(rrset []dns.RR, sigset []*dns.RRSIG) (trusted string)
 			log.Println(key, "not trusted, continuing")
 		}
 
-		// If signer is present in the signed RRSet, and it's
+		// If signer is part of the signed RRSet, and it's
 		// untrusted, then only a DS record can help
 		key, ok = GetKey(rrset, sig.KeyTag)
 		if ok {
-			set, err := c.Lookup(sig.SignerName, dns.TypeANY)
+			set, err := c.Lookup(sig.SignerName, dns.TypeDS)
 			if err != nil {
-				log.Println(sig.SignerName, "not found")
+				log.Println(sig.SignerName, "DS not found")
 				continue
 			}
 
@@ -433,11 +448,15 @@ func (c *Checker) Validate(rrset []dns.RR, sigset []*dns.RRSIG) (trusted string)
 				continue
 			}
 		}
-		// Otherwise, Take DNSKEY RRSet from this lookup and continue.
-		records, newset := SignedRecords(set, dns.TypeDNSKEY)
-		trusted := c.Validate(records, newset)
-		if trusted != "" {
-			return trusted
+
+		// Otherwise, validate DNSKEY or DS records from this lookup
+		// up to a trusted key.
+		for _, rType := range []uint16{dns.TypeDS, dns.TypeDNSKEY} {
+			records, newset := SignedRecords(set, rType)
+			trusted := c.Validate(records, newset)
+			if trusted != "" {
+				return trusted
+			}
 		}
 	}
 
@@ -467,7 +486,7 @@ type PublishedKeys struct {
 }
 
 func (c *Checker) DomainKeys(domain string) (keys *PublishedKeys, err error) {
-	auth, err := c.Lookup(domain, dns.TypeANY)
+	auth, err := c.Lookup(domain, dns.TypeDNSKEY)
 
 	if err != nil {
 		log.Println(err)
