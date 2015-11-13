@@ -308,10 +308,14 @@ func (c *Checker) QueryAtOrigin(name string, rtype uint16) (set []dns.RR, err er
 				return nil, errors.New("lookup failed for " + name)
 			}
 		} else {
-			msg = &dns.Msg{Answer: cached}
+			log.Println("Returning cached", cached)
+			msg = &dns.Msg{MsgHdr: dns.MsgHdr{Authoritative: true}, Answer: cached}
 		}
 
-		if len(msg.Answer) > 0 {
+		if msg.MsgHdr.Authoritative {
+			if len(msg.Answer) == 0 {
+				log.Println("Got empty ans. for", name, rtype)
+			}
 			// Cache answers for name
 			for _, rr := range msg.Answer {
 				c.AddAnswer(name, rr)
