@@ -58,13 +58,13 @@ func GetNS(set []dns.RR) (res []string) {
 }
 
 func GetRRs(set []dns.RR, name string, rtype uint16) (res []dns.RR) {
-	log.Println("GetRRs", name, set)
 	for _, rr := range set {
 		if rr.Header().Name == name &&
 			(rr.Header().Rrtype == rtype || rtype == dns.TypeANY || rr.Header().Rrtype == dns.TypeRRSIG) {
 			res = append(res, rr)
 		}
 	}
+	log.Println("GetRRs", name, set, res)
 	return res
 }
 
@@ -333,6 +333,7 @@ func (c *Checker) QueryAtOrigin(name string, rtype uint16) (set []dns.RR, err er
 		// Ensure we only have one name in referrals
 		name, err := RrsetName(msg.Ns)
 		if err != nil {
+			log.Println("msg.Ns empty", msg)
 			return nil, err
 		}
 
@@ -409,7 +410,7 @@ func (c *Checker) Validate(rrset []dns.RR, sigset []*dns.RRSIG) (trusted string)
 
 		set, err := c.Lookup(sig.SignerName, dns.TypeDNSKEY)
 		if err != nil {
-			log.Println("lookup", err)
+			log.Println("lookup", sig.SignerName, "dnskey", err)
 			continue
 		}
 
@@ -490,17 +491,22 @@ type PublishedKeys struct {
 }
 
 func (c *Checker) DomainKeys(domain string) (keys *PublishedKeys, err error) {
-	auth, err := c.Lookup(domain, dns.TypeDNSKEY)
+	var answer []dns.RR
 
-	if err != nil {
-		log.Println(err)
-		return nil, err
+	for _, rtype := range []uint16{dns.TypeCDS, dns.TypeCDNSKEY, dns.TypeDNSKEY} {
+		auth, err := c.Lookup(domain, rtype)
+		if err != nil {
+			log.Println(err)
+			return nil, err
+		}
+
+		answer = append(answer, auth...)
 	}
 
 	keys = new(PublishedKeys)
-	log.Println("Auth ans", auth)
+	log.Println("Auth ans", answer)
 
-	signers, all := c.ValidKeys(auth)
+	signers, all := c.ValidKeys(answer)
 	keys.Signers = signers
 	for _, rr := range all {
 		switch rr.Header().Rrtype {
