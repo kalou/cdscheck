@@ -323,8 +323,10 @@ func (c *Checker) QueryAtOrigin(name string, rtype uint16) (set []dns.RR, err er
 
 			// Add cached DS/NS/RRSIG from referrals
 			ref = c.GetReferral(name)
-			for _, rr := range ref.authority {
-				msg.Answer = append(msg.Answer, rr)
+			if ref != nil {
+				for _, rr := range ref.authority {
+					msg.Answer = append(msg.Answer, rr)
+				}
 			}
 
 			return msg.Answer, nil
