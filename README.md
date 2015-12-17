@@ -6,7 +6,7 @@ Usage: ./cdscheck -config /path/to/trust/dir
 Trust dir might contain files with the following:
 
 ```bind
-.                       45754   IN      DNSKEY  257 3 8 AwEAAagAIKlVZrpC6Ia7gEzahOR+9W29euxhJhVVLOyQbSEW0O8gcCjF 
+.                       45754   IN      DNSKEY  257 3 8 AwEAAagAIKlVZrpC6Ia7gEzahOR+9W29euxhJhVVLOyQbSEW0O8gcCjF
                                                         FVQUTf6v58fLjwBd0YI0EzrAcQqBGCzh/RStIoO8g0NfnfL2MTJRkxoX
                                                         bfDaUeVPQuYEhg37NZWAJQ9VnMVDxP/VHL496M/QZxkjf5/Efucp2gaD
                                                         X6RS6CXpoY68LsvPVjR0ZSwzz1apAzvN9dlzEheX7ICJBBtuA6G3LQpz
@@ -34,13 +34,12 @@ DNSKEY records (with any given name) are used as trust anchors - and reported in
 NS records for "." are added to the hints for lookups.
 
 ## Motivation
-Having a programmatically accessible service to play with DNSSEC records will allow for more flexibility in various validation functions.
+Having a programmatically defined service able to lookup DNSSEC information from domains.
 
-Simply using a validating, caching nameserver often results in valid - but incomplete dnssec information. ANY might return incomplete results, making it difficult to work with the zone data.
+A CDS/CDNSKEY service might benefit from the short-lived caching and "immediate" access to domain data.
+It might make sense to extend this service to other TXT challenge-response validations, or anything requiring direct access to domain data without suffering the basic TTL delays.
 
-A CDS/CDNSKEY service might benefit from the short-lived caching and "immediate" access to domain data. It might make sense to extend this service to other TXT-based validations, or anything requiring direct access to any domain data.
-
-The use of Go for parallel servicing of many http/DNS-requests seems OK, and miekg/dns has a very up-to-date, easy to use API requiring no addition to support CDS/CDNSKEY and manual DNSSEC validation.
+Golang seems right for parallel processing like that, and miekg/dns has a very up-to-date, easy to use API requiring no addition to support CDS/CDNSKEY and manual DNSSEC validation.
 
 ## Usage
 Only one basic URL as of now:

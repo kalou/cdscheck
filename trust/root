@@ -1,0 +1,29 @@
+;; Invalid option 
+
+; <<>> DiG 9.9.5-4.3ubuntu0.3-Ubuntu <<>> + multiline . DNSKEY
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NXDOMAIN, id: 26963
+;; flags: qr rd ra; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 4096
+;; QUESTION SECTION:
+;multiline.			IN	A
+
+.			45754	IN	DNSKEY	257 3 8 AwEAAagAIKlVZrpC6Ia7gEzahOR+9W29euxhJhVVLOyQbSEW0O8gcCjF FVQUTf6v58fLjwBd0YI0EzrAcQqBGCzh/RStIoO8g0NfnfL2MTJRkxoX bfDaUeVPQuYEhg37NZWAJQ9VnMVDxP/VHL496M/QZxkjf5/Efucp2gaD X6RS6CXpoY68LsvPVjR0ZSwzz1apAzvN9dlzEheX7ICJBBtuA6G3LQpz W5hOA2hzCTMjJPJ8LbqF6dsV6DoBQzgul0sGIcGOYl7OyQdXfZ57relS Qageu+ipAdTTJ25AsRTAoub8ONGcLmqrAmRLKBP1dfwhYB4N7knNnulq QxA+Uk1ihz0=
+
+.			350902	IN	NS	e.root-servers.net.
+.			350902	IN	NS	l.root-servers.net.
+.			350902	IN	NS	c.root-servers.net.
+.			350902	IN	NS	k.root-servers.net.
+.			350902	IN	NS	f.root-servers.net.
+.			350902	IN	NS	b.root-servers.net.
+.			350902	IN	NS	d.root-servers.net.
+.			350902	IN	NS	g.root-servers.net.
+.			350902	IN	NS	h.root-servers.net.
+.			350902	IN	NS	j.root-servers.net.
+.			350902	IN	NS	m.root-servers.net.
+.			350902	IN	NS	i.root-servers.net.
+.			350902	IN	NS	a.root-servers.net.
+

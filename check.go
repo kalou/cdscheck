@@ -38,15 +38,6 @@ func GetDS(set []dns.RR, key *dns.DNSKEY) (*dns.DS, bool) {
 	return nil, false
 }
 
-func Shuffle(a []dns.RR) []dns.RR {
-	for i := range a {
-		j := rand.Intn(i + 1)
-		a[i], a[j] = a[j], a[i]
-	}
-
-	return a
-}
-
 func GetNS(set []dns.RR) (res []string) {
 	for _, rr := range Shuffle(set) {
 		if rr.Header().Rrtype == dns.TypeNS {
@@ -66,6 +57,15 @@ func GetRRs(set []dns.RR, name string, rtype uint16) (res []dns.RR) {
 	}
 	log.Println("GetRRs", name, set, res)
 	return res
+}
+
+func Shuffle(a []dns.RR) []dns.RR {
+	for i := range a {
+		j := rand.Intn(i + 1)
+		a[i], a[j] = a[j], a[i]
+	}
+
+	return a
 }
 
 func SignedRecords(rrset []dns.RR, rtype uint16) (res []dns.RR, sig []*dns.RRSIG) {
@@ -238,8 +238,8 @@ func (c *Checker) Query(domain string, rtype uint16, nameserver string) (in *dns
 		return
 	}
 
-	tcp := &dns.Client{Net: "tcp"}
 	if in.MsgHdr.Truncated {
+		tcp := &dns.Client{Net: "tcp"}
 		in, _, err = tcp.Exchange(query, nameserver)
 	}
 
@@ -372,7 +372,7 @@ func (c *Checker) IsTrustedKey(key *dns.DNSKEY) (string, bool) {
 }
 
 // ValidateOne checks an rrset according to known origin security
-// records. If needed, performs a lookup.
+// records.
 func ValidateOne(rrset []dns.RR, sig *dns.RRSIG, key *dns.DNSKEY) error {
 	name, err := RrsetName(rrset)
 	if err != nil {
